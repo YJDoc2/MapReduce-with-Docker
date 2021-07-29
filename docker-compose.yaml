@@ -1,0 +1,33 @@
+version: "3.8"
+services:
+  s1:
+    cpu_quota: 10000
+    volumes: 
+      - ./target/debug:/src
+    image: "ubuntu"
+    command: "tail -F /dev/null"
+    networks:
+      - test
+  s2:
+    image: "ubuntu"
+    command: "tail -F /dev/null"
+    networks:
+      - test
+  s3:
+    image: "ubuntu"
+    command: "tail -F /dev/null"
+    networks:
+      - test
+  s4:
+    image: "ubuntu"
+    command: "tail -F /dev/null"
+    networks:
+      - test
+  s5:
+    image: "ubuntu"
+    command: "tail -F /dev/null"
+    networks:
+      - test
+  
+networks:
+  test:

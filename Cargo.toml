@@ -1,0 +1,14 @@
+[package]
+name = "mapreduce"
+version = "0.1.0"
+authors = ["Yashodhan Joshi <yjdoc2@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { version="1.0.126", features = ["derive"] }
+serde_json = "1.0.64"
+tokio = { version = "0.3", features = ["full"] }
+tokio-async-std = "1.5.3"
+manager =  { version = "0.1.0", path = "./manager" }
