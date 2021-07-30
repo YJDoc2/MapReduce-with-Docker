@@ -24,7 +24,7 @@ pub struct Worker {
 pub struct Manager {
     free_pool: VecDeque<Worker>,
     assigned_set: HashMap<String, Worker>,
-    pending: VecDeque<MasterMessage>,
+    pub pending: VecDeque<MasterMessage>,
 }
 
 impl Manager {
@@ -75,5 +75,9 @@ impl Manager {
             }
             self.free_pool.push_back(x);
         }
+    }
+
+    pub fn tasks_done(&self) -> bool {
+        self.pending.len() == 0 && self.assigned_set.len() == 0
     }
 }
