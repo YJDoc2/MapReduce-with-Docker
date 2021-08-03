@@ -16,6 +16,18 @@ pub enum Tasks {
     FreeWorker { ip: Ipv4Addr },
 }
 
+fn get_string(buf: &[u8]) -> String {
+    let mut end = 0;
+    for (i, v) in buf.iter().enumerate() {
+        if *v == 0 {
+            end = i;
+            break;
+        }
+    }
+
+    return String::from_utf8(Vec::from(&buf[0..end])).unwrap();
+}
+
 pub async fn spawn_listener(self_ip: Ipv4Addr, manager: mpsc::Sender<Tasks>) {
     tokio::spawn(async move {
         let listener = TcpListener::bind((self_ip, BROKER_PORT)).await.unwrap();
@@ -27,13 +39,13 @@ pub async fn spawn_listener(self_ip: Ipv4Addr, manager: mpsc::Sender<Tasks>) {
             };
             let m_clone = manager.clone();
             tokio::spawn(async move {
-                let mut buf = [0; 50];
+                let mut buf = [0; 512];
                 loop {
                     match socket.read(&mut buf).await {
                         // socket closed
                         Ok(n) if n == 0 => return,
                         Ok(_) => {
-                            let msg = String::from_utf8(Vec::from(&buf[0..6])).unwrap();
+                            let msg = get_string(&buf);
                             let msg: SlaveMessage = serde_json::from_str(&msg).unwrap();
                             match msg {
                                 SlaveMessage::Done => {
