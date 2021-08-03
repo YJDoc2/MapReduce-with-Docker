@@ -12,6 +12,39 @@ fn get_splitfile_name(idx: u8) -> String {
     format!("map_split_{}.txt", idx)
 }
 
+// should be changed later?
+fn get_input_file() -> String {
+    std::env::var("INPUT").unwrap()
+}
+
+// This is still hacky, but works for now
+fn split_input_file() {
+    use std::io::Write;
+    let file = get_input_file();
+    let base = file.rsplit_once("/").unwrap().0;
+    let ip = std::fs::read_to_string(file.clone()).unwrap();
+    let lines: Vec<_> = ip.split('\n').collect();
+    let d = (lines.len() as f32 / MAP_SPLIT as f32).ceil() as usize;
+    let mut start = 0;
+    let mut end;
+    for i in 0..MAP_SPLIT {
+        end = if start + d <= lines.len() {
+            start + d
+        } else {
+            lines.len()
+        };
+        let mut opts = std::fs::OpenOptions::new();
+        let _fname = format!("{}/{}", base, get_splitfile_name(i));
+        println!("{}", _fname);
+        let mut _f = opts.write(true).create_new(true).open(_fname).unwrap();
+        for line in &lines[start..end] {
+            _f.write(line.as_bytes()).unwrap();
+            _f.write(&['\n' as u8]).unwrap();
+        }
+        start = end;
+    }
+}
+
 async fn spawn_tracker(manager: mpsc::Sender<Tasks>, rcvr: mpsc::Receiver<()>) {
     let mut rcvr = rcvr;
 
@@ -47,7 +80,7 @@ pub async fn master_main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // todo split the file here
+    split_input_file();
 
     spawn_tracker(manager.clone(), rcvr).await;
     Ok(())

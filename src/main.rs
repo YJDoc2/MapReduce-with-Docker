@@ -2,10 +2,11 @@ mod ip_finder;
 mod mapreduce;
 mod master;
 mod slave;
+use std::env;
 
 #[tokio::main]
 async fn main() {
-    match std::env::var("TYPE") {
+    match env::var("TYPE") {
         Ok(s) => {
             if s == "master" {
                 return master::master_main().await.unwrap();
