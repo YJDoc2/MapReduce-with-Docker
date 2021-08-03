@@ -1,13 +1,12 @@
-mod manager;
-mod messages;
-use crate::manager::Manager;
-use messages::{MasterMessage, SlaveMessage};
+use crate::ip_finder::get_self_ip;
+use manager::{MasterMessage, SlaveMessage};
 use std::net::Ipv4Addr;
 use std::str::FromStr;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::time::{sleep, Duration};
-pub const ADDR: &str = "127.0.0.1";
+
+pub const SOCKET: u16 = 7000;
 
 // Duplicate definition, extract into common later
 fn get_string(buf: &[u8]) -> String {
@@ -22,9 +21,9 @@ fn get_string(buf: &[u8]) -> String {
     return String::from_utf8(Vec::from(&buf[0..end])).unwrap();
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let listener = TcpListener::bind("127.0.0.1:7000").await?;
+pub async fn slave_main() -> Result<(), Box<dyn std::error::Error>> {
+    let self_ip = Ipv4Addr::from_str("127.0.0.1").unwrap(); //get_self_ip();
+    let listener = TcpListener::bind((self_ip, SOCKET)).await?;
 
     loop {
         let (mut socket, _) = listener.accept().await?;

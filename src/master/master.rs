@@ -1,4 +1,4 @@
-use super::ip_finder::{get_ip_list, get_self_ip};
+use crate::ip_finder::{get_ip_list, get_self_ip};
 use manager::MasterMessage;
 use manager::{spwan_manager, Tasks};
 use std::net::Ipv4Addr;
