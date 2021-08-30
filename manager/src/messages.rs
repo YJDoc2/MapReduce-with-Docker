@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 pub enum MasterMessage {
     MapDirective { input_file: String },
     ReduceDirective { input_file: String },
-    ShuffleDirective { input_files: Vec<String> },
+    ShuffleDirective { input_file: String, splits: u8 },
 }
 impl MasterMessage {
     pub fn to_u8_vec(&self) -> Vec<u8> {

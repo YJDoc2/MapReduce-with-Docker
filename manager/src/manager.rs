@@ -56,7 +56,10 @@ impl Manager {
         let wtype = match &message {
             MasterMessage::MapDirective { input_file: _ } => WorkerType::Mapper,
             MasterMessage::ReduceDirective { input_file: _ } => WorkerType::Reducer,
-            MasterMessage::ShuffleDirective { input_files: _ } => WorkerType::Shuffler,
+            MasterMessage::ShuffleDirective {
+                input_file: _,
+                splits: _,
+            } => WorkerType::Shuffler,
         };
         let mut stream = TcpStream::connect((worker.ip_addr, SOCKET_ADDR))
             .await

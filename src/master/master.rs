@@ -27,7 +27,7 @@ fn split_input_file() {
     let d = (lines.len() as f32 / MAP_SPLIT as f32).ceil() as usize;
     let mut start = 0;
     let mut end;
-    for i in 0..MAP_SPLIT {
+    for i in 1..=MAP_SPLIT {
         end = if start + d <= lines.len() {
             start + d
         } else {
@@ -54,11 +54,28 @@ async fn spawn_tracker(manager: mpsc::Sender<Tasks>, rcvr: mpsc::Receiver<()>) {
         if let Err(_) = manager.clone().send(Tasks::Allocate { message: msg }).await {
             println!("Error in sending map file information to nodes");
         } else {
-            println!("sent {} task", i);
+            println!("queued map task {}", i);
         }
     }
     if let Some(()) = rcvr.recv().await {
-        println!("Done!");
+        println!("All map done");
+    }
+
+    for i in 1..=MAP_SPLIT {
+        let name = get_splitfile_name(i);
+        let msg = MasterMessage::ShuffleDirective {
+            input_file: name,
+            splits: MAP_SPLIT,
+        };
+        if let Err(_) = manager.clone().send(Tasks::Allocate { message: msg }).await {
+            println!("Error in sending shuffle file information to nodes");
+        } else {
+            println!("queued shuffle task {}", i);
+        }
+    }
+
+    if let Some(()) = rcvr.recv().await {
+        println!("All shuffle done");
     }
 }
 

@@ -1,2 +1,10 @@
+mod hasher;
+mod map;
+mod reduce;
+mod shuffle;
 mod slave;
+pub use hasher::get_hash;
+pub use map::map;
+pub use reduce::reduce;
+pub use shuffle::shuffle;
 pub use slave::slave_main;

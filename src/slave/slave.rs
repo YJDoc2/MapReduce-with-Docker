@@ -1,10 +1,10 @@
+use super::{map, reduce, shuffle};
 use crate::ip_finder::get_self_ip;
 use manager::{MasterMessage, SlaveMessage};
 use std::net::Ipv4Addr;
 use std::str::FromStr;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
-use tokio::time::{sleep, Duration};
 
 pub const SOCKET: u16 = 7000;
 
@@ -21,6 +21,16 @@ fn get_string(buf: &[u8]) -> String {
     return String::from_utf8(Vec::from(&buf[0..end])).unwrap();
 }
 
+async fn init_work(msg: &MasterMessage) {
+    match msg {
+        MasterMessage::MapDirective { input_file } => map(input_file).await,
+        MasterMessage::ReduceDirective { input_file } => reduce(input_file).await,
+        MasterMessage::ShuffleDirective { input_file, splits } => {
+            shuffle(input_file, *splits).await
+        }
+    }
+}
+
 pub async fn slave_main() -> Result<(), Box<dyn std::error::Error>> {
     let self_ip = Ipv4Addr::from_str("127.0.0.1").unwrap(); //get_self_ip();
     let listener = TcpListener::bind((self_ip, SOCKET)).await?;
@@ -34,11 +44,11 @@ pub async fn slave_main() -> Result<(), Box<dyn std::error::Error>> {
             loop {
                 let n = match socket.read(&mut buf).await {
                     // socket closed
-                    Ok(n) if n == 0 => return,
+                    Ok(n) if n == 0 => {}
                     Ok(_) => {
                         let msg = get_string(&buf);
                         let msg: MasterMessage = serde_json::from_str(&msg).unwrap();
-                        sleep(Duration::from_millis(1000)).await;
+                        init_work(&msg).await;
                         let t = serde_json::to_string(&SlaveMessage::Done).unwrap();
                         let mut s = TcpStream::connect("127.0.0.1:8000").await.unwrap();
                         s.write_all(&Vec::from(t)).await.unwrap();
