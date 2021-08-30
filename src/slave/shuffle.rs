@@ -35,7 +35,7 @@ pub async fn shuffle(file: &str, splits: u8) {
     let mut rng: StdRng = SeedableRng::from_entropy();
 
     for (k, v) in shuffled.iter() {
-        let wait_time: u64 = rng.gen_range(10..1000);
+        let wait_time: u64 = rng.gen_range(10..100);
         let wd = Duration::from_millis(wait_time);
         let op = format_shuffled(v);
         // wait for random duration so that we don't mistakenly overwrite when

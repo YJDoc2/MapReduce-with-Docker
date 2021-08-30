@@ -8,8 +8,8 @@ use tokio::sync::mpsc;
 
 const MAP_SPLIT: u8 = 5;
 
-fn get_splitfile_name(idx: u8) -> String {
-    format!("map_split_{}.txt", idx)
+fn get_splitfile_name(task: &str, idx: u8) -> String {
+    format!("{}_split_{}.txt", task, idx)
 }
 
 // should be changed later?
@@ -34,7 +34,7 @@ fn split_input_file() {
             lines.len()
         };
         let mut opts = std::fs::OpenOptions::new();
-        let _fname = format!("{}/{}", base, get_splitfile_name(i));
+        let _fname = format!("{}/{}", base, get_splitfile_name("map", i));
         println!("{}", _fname);
         let mut _f = opts.write(true).create_new(true).open(_fname).unwrap();
         for line in &lines[start..end] {
@@ -49,7 +49,7 @@ async fn spawn_tracker(manager: mpsc::Sender<Tasks>, rcvr: mpsc::Receiver<()>) {
     let mut rcvr = rcvr;
 
     for i in 1..=MAP_SPLIT {
-        let name = get_splitfile_name(i);
+        let name = get_splitfile_name("map", i);
         let msg = MasterMessage::MapDirective { input_file: name };
         if let Err(_) = manager.clone().send(Tasks::Allocate { message: msg }).await {
             println!("Error in sending map file information to nodes");
@@ -62,7 +62,7 @@ async fn spawn_tracker(manager: mpsc::Sender<Tasks>, rcvr: mpsc::Receiver<()>) {
     }
 
     for i in 1..=MAP_SPLIT {
-        let name = get_splitfile_name(i);
+        let name = get_splitfile_name("map", i);
         let msg = MasterMessage::ShuffleDirective {
             input_file: name,
             splits: MAP_SPLIT,
@@ -76,6 +76,20 @@ async fn spawn_tracker(manager: mpsc::Sender<Tasks>, rcvr: mpsc::Receiver<()>) {
 
     if let Some(()) = rcvr.recv().await {
         println!("All shuffle done");
+    }
+
+    for i in 1..=MAP_SPLIT {
+        let name = get_splitfile_name("shuffle", i);
+        let msg = MasterMessage::ReduceDirective { input_file: name };
+        if let Err(_) = manager.clone().send(Tasks::Allocate { message: msg }).await {
+            println!("Error in sending reduced file information to nodes");
+        } else {
+            println!("queued reduce task {}", i);
+        }
+    }
+
+    if let Some(()) = rcvr.recv().await {
+        println!("All reduce done");
     }
 }
 
