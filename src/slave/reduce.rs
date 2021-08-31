@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path::PathBuf;
 use tokio::fs::File;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
@@ -23,7 +24,10 @@ fn format_reduced<'a>(reduced: &'a HashMap<&str, u32>) -> Vec<u8> {
 }
 
 pub async fn reduce(file: &str) {
-    let mut f = File::open(file).await.unwrap();
+    let mut f = match File::open(file).await {
+        Ok(r) => r,
+        Err(_) => return,
+    };
     let mut contents = vec![];
     f.read_to_end(&mut contents).await.unwrap();
     let ip = String::from_utf8(contents).unwrap();
@@ -38,7 +42,9 @@ pub async fn reduce(file: &str) {
     }
     let idx = extract_num(file);
     let op = format_reduced(&hm);
-    let mut file = File::create(format!("reduce_split_{}.txt", idx))
+    let mut fpath = PathBuf::from(file);
+    fpath.pop();
+    let mut file = File::create(fpath.join(format!("reduce_split_{}.txt", idx)))
         .await
         .unwrap();
     file.write_all(&op).await.unwrap();

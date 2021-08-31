@@ -1,9 +1,10 @@
 use crate::ip_finder::{get_ip_list, get_self_ip};
 use manager::MasterMessage;
 use manager::{spwan_manager, Tasks};
+use std::io::Write;
 use std::net::Ipv4Addr;
+use std::path::PathBuf;
 use std::str::FromStr;
-
 use tokio::sync::mpsc;
 
 const MAP_SPLIT: u8 = 5;
@@ -19,14 +20,13 @@ fn get_input_file() -> String {
 
 // This is still hacky, but works for now
 fn split_input_file() {
-    use std::io::Write;
-    let file = get_input_file();
-    let base = file.rsplit_once("/").unwrap().0;
-    let ip = std::fs::read_to_string(file.clone()).unwrap();
+    let mut fpath = PathBuf::from(get_input_file());
+    let ip = std::fs::read_to_string(fpath.clone()).unwrap();
     let lines: Vec<_> = ip.split('\n').collect();
     let d = (lines.len() as f32 / MAP_SPLIT as f32).ceil() as usize;
     let mut start = 0;
     let mut end;
+    fpath.pop();
     for i in 1..=MAP_SPLIT {
         end = if start + d <= lines.len() {
             start + d
@@ -34,9 +34,11 @@ fn split_input_file() {
             lines.len()
         };
         let mut opts = std::fs::OpenOptions::new();
-        let _fname = format!("{}/{}", base, get_splitfile_name("map", i));
-        println!("{}", _fname);
-        let mut _f = opts.write(true).create_new(true).open(_fname).unwrap();
+        let mut _f = opts
+            .write(true)
+            .create_new(true)
+            .open(fpath.join(get_splitfile_name("map", i)))
+            .unwrap();
         for line in &lines[start..end] {
             _f.write(line.as_bytes()).unwrap();
             _f.write(&['\n' as u8]).unwrap();

@@ -4,9 +4,9 @@ use rand::rngs::StdRng;
 use rand::SeedableRng;
 use serde_json;
 use std::collections::HashMap;
-// use tokio::fs::{File, OpenOptions};
 use std::fs::OpenOptions;
 use std::io::Write;
+use std::path::PathBuf;
 use tokio::io::AsyncReadExt;
 use tokio::time::{sleep, Duration};
 
@@ -20,10 +20,10 @@ fn format_shuffled<'a>(shuffled: &'a [(&str, u32)]) -> Vec<u8> {
 }
 
 pub async fn shuffle(file: &str, splits: u8) {
-    let mut file = tokio::fs::File::open(file).await.unwrap();
+    let mut f = tokio::fs::File::open(file).await.unwrap();
 
     let mut contents = vec![];
-    file.read_to_end(&mut contents).await.unwrap();
+    f.read_to_end(&mut contents).await.unwrap();
     let ip = String::from_utf8(contents).unwrap();
     let hm: HashMap<String, u32> = serde_json::from_str(&ip).unwrap();
     let mut shuffled: HashMap<u8, Vec<(&str, u32)>> = HashMap::new();
@@ -33,6 +33,8 @@ pub async fn shuffle(file: &str, splits: u8) {
         entries.push((k, *v));
     }
     let mut rng: StdRng = SeedableRng::from_entropy();
+    let mut fpath = PathBuf::from(file);
+    fpath.pop();
 
     for (k, v) in shuffled.iter() {
         let wait_time: u64 = rng.gen_range(10..100);
@@ -46,7 +48,7 @@ pub async fn shuffle(file: &str, splits: u8) {
         let mut file = OpenOptions::new()
             .append(true)
             .create(true)
-            .open(format!("shuffle_split_{}.txt", k))
+            .open(fpath.join(format!("shuffle_split_{}.txt", k)))
             .unwrap();
         file.write_all(&op).unwrap();
     }
