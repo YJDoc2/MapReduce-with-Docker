@@ -1,8 +1,6 @@
 use super::{map, reduce, shuffle};
 use crate::ip_finder::get_self_ip;
 use manager::{MasterMessage, SlaveMessage};
-use std::net::Ipv4Addr;
-use std::str::FromStr;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 
@@ -47,7 +45,7 @@ pub async fn slave_main() -> Result<(), Box<dyn std::error::Error>> {
 
             // In a loop, read data from the socket and write the data back.
             loop {
-                let n = match socket.read(&mut buf).await {
+                let _ = match socket.read(&mut buf).await {
                     // socket closed
                     Ok(n) if n == 0 => {}
                     Ok(_) => {

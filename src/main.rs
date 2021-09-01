@@ -3,13 +3,17 @@ mod mapreduce;
 mod master;
 mod slave;
 use std::env;
+use std::time::Instant;
 
 #[tokio::main]
 async fn main() {
     match env::var("TYPE") {
         Ok(s) => {
             if s == "master" {
-                return master::master_main().await.unwrap();
+                let time = Instant::now();
+                master::master_main().await.unwrap();
+                println!("{:?}", time.elapsed());
+                return;
             }
             if s == "slave" {
                 return slave::slave_main().await.unwrap();
