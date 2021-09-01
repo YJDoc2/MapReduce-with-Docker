@@ -7,6 +7,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 
 pub const SOCKET: u16 = 7000;
+pub const MASTER_SOCKET: u16 = 8000;
 
 // Duplicate definition, extract into common later
 fn get_string(buf: &[u8]) -> String {
@@ -32,11 +33,15 @@ async fn init_work(msg: &MasterMessage) {
 }
 
 pub async fn slave_main() -> Result<(), Box<dyn std::error::Error>> {
-    let self_ip = Ipv4Addr::from_str("127.0.0.1").unwrap(); //get_self_ip();
+    let self_ip = get_self_ip();
     let listener = TcpListener::bind((self_ip, SOCKET)).await?;
 
     loop {
-        let (mut socket, _) = listener.accept().await?;
+        let (mut socket, addr) = listener.accept().await?;
+        let addrv4 = match addr {
+            std::net::SocketAddr::V6(_) => panic!("Needs to support ip v6"),
+            std::net::SocketAddr::V4(a) => a.ip().clone(),
+        };
         tokio::spawn(async move {
             let mut buf = [0; 512];
 
@@ -50,7 +55,7 @@ pub async fn slave_main() -> Result<(), Box<dyn std::error::Error>> {
                         let msg: MasterMessage = serde_json::from_str(&msg).unwrap();
                         init_work(&msg).await;
                         let t = serde_json::to_string(&SlaveMessage::Done).unwrap();
-                        let mut s = TcpStream::connect("127.0.0.1:8000").await.unwrap();
+                        let mut s = TcpStream::connect((addrv4, MASTER_SOCKET)).await.unwrap();
                         s.write_all(&Vec::from(t)).await.unwrap();
                         println!("{:?}", msg);
                         return;

@@ -14,7 +14,7 @@ pub fn get_self_ip() -> Ipv4Addr {
         .expect("Failed to obtain own ip address using awk");
     let out = awk.wait_with_output().expect("Initial awk failed").stdout;
     let ip = String::from_utf8(out).unwrap();
-    Ipv4Addr::from_str(&ip).unwrap()
+    Ipv4Addr::from_str(ip.trim()).unwrap()
 }
 
 pub async fn get_ip_list(own_ip: &Ipv4Addr) -> Vec<String> {

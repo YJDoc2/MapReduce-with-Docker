@@ -61,6 +61,7 @@ impl Manager {
                 splits: _,
             } => WorkerType::Shuffler,
         };
+        println!("{} {}", worker.ip_addr, SOCKET_ADDR);
         let mut stream = TcpStream::connect((worker.ip_addr, SOCKET_ADDR))
             .await
             .unwrap();

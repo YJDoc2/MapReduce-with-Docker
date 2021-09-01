@@ -5,6 +5,7 @@ use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
 
 pub async fn map(file: &str) {
+    println!("{}", file);
     let ip = read_to_string(file).unwrap();
     let mut hm: HashMap<&str, u32> = HashMap::new();
     for word in ip.split(&[' ', '.', ',', '\n', '\t', '?', '!'][..]) {

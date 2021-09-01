@@ -49,9 +49,14 @@ fn split_input_file() {
 
 async fn spawn_tracker(manager: mpsc::Sender<Tasks>, rcvr: mpsc::Receiver<()>) {
     let mut rcvr = rcvr;
-
+    let mut fpath = PathBuf::from(get_input_file());
+    fpath.pop();
     for i in 1..=MAP_SPLIT {
-        let name = get_splitfile_name("map", i);
+        let name = fpath
+            .join(get_splitfile_name("map", i))
+            .to_str()
+            .unwrap()
+            .to_owned();
         let msg = MasterMessage::MapDirective { input_file: name };
         if let Err(_) = manager.clone().send(Tasks::Allocate { message: msg }).await {
             println!("Error in sending map file information to nodes");
@@ -64,7 +69,11 @@ async fn spawn_tracker(manager: mpsc::Sender<Tasks>, rcvr: mpsc::Receiver<()>) {
     }
 
     for i in 1..=MAP_SPLIT {
-        let name = get_splitfile_name("map", i);
+        let name = fpath
+            .join(get_splitfile_name("map", i))
+            .to_str()
+            .unwrap()
+            .to_owned();
         let msg = MasterMessage::ShuffleDirective {
             input_file: name,
             splits: MAP_SPLIT,
@@ -81,7 +90,11 @@ async fn spawn_tracker(manager: mpsc::Sender<Tasks>, rcvr: mpsc::Receiver<()>) {
     }
 
     for i in 1..=MAP_SPLIT {
-        let name = get_splitfile_name("shuffle", i);
+        let name = fpath
+            .join(get_splitfile_name("shuffle", i))
+            .to_str()
+            .unwrap()
+            .to_owned();
         let msg = MasterMessage::ReduceDirective { input_file: name };
         if let Err(_) = manager.clone().send(Tasks::Allocate { message: msg }).await {
             println!("Error in sending reduced file information to nodes");
@@ -96,13 +109,13 @@ async fn spawn_tracker(manager: mpsc::Sender<Tasks>, rcvr: mpsc::Receiver<()>) {
 }
 
 pub async fn master_main() -> Result<(), Box<dyn std::error::Error>> {
-    let self_ip = Ipv4Addr::from_str("127.0.0.1").unwrap(); //get_self_ip();
-    let connected_ips = vec!["127.0.0.1"]; //get_ip_list(&self_ip).await;
-
+    let self_ip = get_self_ip();
+    let connected_ips = get_ip_list(&self_ip).await;
+    println!("{:?}", connected_ips);
     let (sender, rcvr) = mpsc::channel::<()>(5);
     let manager = spwan_manager(self_ip, sender).await?;
 
-    for ip in connected_ips {
+    for ip in &connected_ips[1..] {
         if let Err(_) = manager
             .send(Tasks::AddWorker {
                 ip: Ipv4Addr::from_str(&ip).unwrap(),

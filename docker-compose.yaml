@@ -1,33 +1,56 @@
-version: "3.8"
+version: '3.8'
 services:
   s1:
-    cpu_quota: 10000
-    volumes: 
+    depends_on:
+      - s2
+      - s3
+      - s4
+      - s5
+    environment:
+      - TYPE=master
+      - INPUT=/data/test.txt
+    volumes:
       - ./target/debug:/src
-    image: "ubuntu"
-    command: "tail -F /dev/null"
+      - ./data:/data
+    image: 'mapreduce:v1'
     networks:
       - test
   s2:
-    image: "ubuntu"
-    command: "tail -F /dev/null"
+    environment:
+      - TYPE=slave
+    image: 'mapreduce:v1'
+    volumes:
+      - ./target/debug:/src
+      - ./data:/data
     networks:
       - test
   s3:
-    image: "ubuntu"
-    command: "tail -F /dev/null"
+    environment:
+      - TYPE=slave
+    image: 'mapreduce:v1'
+    volumes:
+      - ./target/debug:/src
+      - ./data:/data
     networks:
       - test
   s4:
-    image: "ubuntu"
-    command: "tail -F /dev/null"
+    environment:
+      - TYPE=slave
+    image: 'mapreduce:v1'
+    volumes:
+      - ./target/debug:/src
+      - ./data:/data
     networks:
       - test
   s5:
-    image: "ubuntu"
-    command: "tail -F /dev/null"
+    environment:
+      - TYPE=slave
+    image: 'mapreduce:v1'
+    volumes:
+      - ./target/debug:/src
+      - ./data:/data
     networks:
       - test
-  
+
 networks:
   test:
