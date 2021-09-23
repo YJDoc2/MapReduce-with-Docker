@@ -61,7 +61,6 @@ impl Manager {
                 splits: _,
             } => WorkerType::Shuffler,
         };
-        println!("{} {}", worker.ip_addr, SOCKET_ADDR);
         let mut stream = TcpStream::connect((worker.ip_addr, SOCKET_ADDR))
             .await
             .unwrap();
@@ -74,6 +73,8 @@ impl Manager {
     pub async fn worker_done(&mut self, ip: &str) {
         if let Some(x) = self.assigned_set.remove(ip) {
             if let Some(m) = self.pending.pop_front() {
+                // not assigned again, as send_message puts back in
+                // assigned_set
                 self.send_message(x, &m).await;
                 return;
             }

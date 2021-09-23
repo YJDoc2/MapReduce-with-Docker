@@ -55,7 +55,6 @@ pub async fn slave_main() -> Result<(), Box<dyn std::error::Error>> {
                         let t = serde_json::to_string(&SlaveMessage::Done).unwrap();
                         let mut s = TcpStream::connect((addrv4, MASTER_SOCKET)).await.unwrap();
                         s.write_all(&Vec::from(t)).await.unwrap();
-                        println!("{:?}", msg);
                         return;
                     }
                     Err(e) => {

@@ -2,10 +2,10 @@ version: '3.8'
 services:
   s1:
     image: 'ubuntu'
-    cpu_quota: 1500
+    cpu_quota: 3000
     environment:
       - TYPE=master
-      - INPUT=/data/bigtext.txt
+      - INPUT=/data/books.txt
     volumes:
       - ./target/debug:/src
       - ../data:/data

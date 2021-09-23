@@ -12,7 +12,10 @@ fn main() {
     println!("Starting...");
     let ip = std::fs::read_to_string(fpath.clone()).unwrap();
     let mut hm = HashMap::new();
-    for word in ip.split(&[' ', '.', ',', '\n', '\t', '?', '!'][..]) {
+    for word in ip.split(&[' ', '.', ',', '\n', '\t', '?', '!', '\'', '\"', '_', '-'][..]) {
+        if word.len() == 0 {
+            continue;
+        }
         let ctr = hm.entry(word).or_insert(0);
         *ctr += 1;
     }
@@ -22,8 +25,8 @@ fn main() {
         .create(true)
         .open(fpath.join("singlenode.txt"))
         .unwrap();
-    for (k, v) in hm.iter() {
-        writeln!(f, "{} {}", k, v).unwrap();
-    }
+    let mut t = String::new();
+    t = hm.iter().fold(t, |t, (k, v)| t + &format!("{} {}\n", k, v));
+    writeln!(f, "{}", t).unwrap();
     println!("{:?}", time.elapsed());
 }

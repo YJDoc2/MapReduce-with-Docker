@@ -1,16 +1,18 @@
 version: '3.8'
 services:
   s1:
-    cpu_quota: 1500
+    cpu_quota: 3000
     depends_on:
       - s2
       - s3
       - s4
       - s5
       - s6
+      - s7
+      - s8
     environment:
       - TYPE=master
-      - INPUT=/data/bigtext.txt
+      - INPUT=/data/books.txt
     volumes:
       - ./target/debug:/src
       - ./data:/data
@@ -18,7 +20,7 @@ services:
     networks:
       - test
   s2:
-    cpu_quota: 1500
+    cpu_quota: 3000
     environment:
       - TYPE=slave
     image: 'mapreduce:v1'
@@ -28,7 +30,7 @@ services:
     networks:
       - test
   s3:
-    cpu_quota: 1500
+    cpu_quota: 3000
     environment:
       - TYPE=slave
     image: 'mapreduce:v1'
@@ -38,7 +40,7 @@ services:
     networks:
       - test
   s4:
-    cpu_quota: 1500
+    cpu_quota: 3000
     environment:
       - TYPE=slave
     image: 'mapreduce:v1'
@@ -48,7 +50,7 @@ services:
     networks:
       - test
   s5:
-    cpu_quota: 1500
+    cpu_quota: 3000
     environment:
       - TYPE=slave
     image: 'mapreduce:v1'
@@ -58,7 +60,27 @@ services:
     networks:
       - test
   s6:
-    cpu_quota: 1500
+    cpu_quota: 3000
+    environment:
+      - TYPE=slave
+    image: 'mapreduce:v1'
+    volumes:
+      - ./target/debug:/src
+      - ./data:/data
+    networks:
+      - test
+  s7:
+    cpu_quota: 3000
+    environment:
+      - TYPE=slave
+    image: 'mapreduce:v1'
+    volumes:
+      - ./target/debug:/src
+      - ./data:/data
+    networks:
+      - test
+  s8:
+    cpu_quota: 3000
     environment:
       - TYPE=slave
     image: 'mapreduce:v1'
