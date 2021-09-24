@@ -20,12 +20,12 @@ I also wanted to explore the async functionality in Rust, so this uses Tokio to 
 
 ## Points to Note
 
-As said before this implements an idea case version of Map-Reduce algorithm to prove that the distributed system actually works as expected : The original paper can be found at https://static.googleusercontent.com/media/research.google.com/en//archive/mapreduce-osdi04.pdf
+As said before this implements an ideal case version of Map-Reduce algorithm to prove that the distributed system actually works as expected : The original paper can be found at https://static.googleusercontent.com/media/research.google.com/en//archive/mapreduce-osdi04.pdf
 
 The paper describes algorithm which takes in consideration things such as network latency, an underlying distributed filesystem, occasional failure of worker nodes, etc. The ideal version implemented here assumes that :
 
 - worker nodes are always up, and they are up before master starts
-- worker nodes are always available with no, and some failures, and will always complete the work they are assigned
+- worker nodes are always available with no failures, and will always complete the work they are assigned
 - the underlying files system is imitated using docker volumes, where the same directory in host system is mapped into each of the containers, giving an impression to nodes that they have a shared filesystem.
 
 ## An Use-Oriented Overview
@@ -38,7 +38,7 @@ To start the single node system : go in the `singlenode` directory and run
 docker-compose up
 ```
 
-This will start the docker container and run the single node word-count program. The output will be generated in `data` directory in the project root with name singlenode.txt . The output on console will show time taken for the program execution, measured from `main` function start to end.
+This will start the docker container and run the single node word-count program. The output will be generated in `data` directory in the project root with name singlenode.txt . The output on console will show time taken for the program execution, measured from `main` function's start to end.
 
 To start the multi-node system system run the following in the project root
 
@@ -46,14 +46,14 @@ To start the multi-node system system run the following in the project root
 docker-compose up
 ```
 
-This will start the worker container first, and then start master node and attach them to each other. The brief output on console will show progress and queuing of various tasks, and in the end time taken for the process, measured from start of the mater main function to end of master main function. Then the master node will exit, and rest of containers will need to be stopped manually by using `ctrl+c`, which will stop the docker compose.
+This will start the worker containodesner first, and then start master node and attach them to each other. The brief output on console will show progress and queuing of various tasks, and in the end, it will show the time taken for the process, measured from start of the `mater_main` function to end of `master_main` function. Then the master node will exit, and rest of containers will need to be stopped manually by using `ctrl+c`, which will stop the docker compose.
 
-The output will be generated in the project root data directory, with following format:
-map_split\_\*.txt will contain output of map stage
-shuffle_split\_\*.txt will contain output of shuffle stage
-reduce_split\_\*.txt will contain result of reduce stage
+The output will be generated in the project root data directory, with following format:<br />
+map_split\_\*.txt will contain output of map stage<br />
+shuffle_split\_\*.txt will contain output of shuffle stage<br />
+reduce_split\_\*.txt will contain result of reduce stage<br />
 
-map_split files will be equal to number of worker nodes, but the number of shuffle and reduce splits files will depend on the keys generated in map stage, and hash functions used to has the keys.
+map_split files will be equal to number of worker nodes, but the number of shuffle and reduce splits files will depend on the keys generated in map stage, and hash functions used to hash the keys.
 
 This repository actually consists of two Rust projects :
 
@@ -84,7 +84,7 @@ The compose files must have the following env vars defined :
 - TYPE : type of node, can be one of `master` or `worker`, and there must be only one master. This must be defined for each of the nodes
 - INPUT : path of data file that is to be processed, inside the container. This is to be defined only for master node.
 
-The Dockerfile for the distributed system defines the image configuration, where it exposes two of the ports, and installs nmap, which is used for port-scanning and worker node detection by master.
+The Dockerfile for the distributed system defines the image configuration, where it exposes two of the ports, and installs `nmap`, which is used for port-scanning and worker node detection by master.
 
 ## Flow diagram
 
