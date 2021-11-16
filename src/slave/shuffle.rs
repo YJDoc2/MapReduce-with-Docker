@@ -19,14 +19,14 @@ fn format_shuffled<'a>(shuffled: &'a [(&str, u32)]) -> Vec<u8> {
     return joined.as_bytes().to_vec();
 }
 
-pub async fn shuffle(file: &str, splits: u8) {
+pub async fn shuffle(file: &str, splits: usize) {
     let mut f = tokio::fs::File::open(file).await.unwrap();
 
     let mut contents = vec![];
     f.read_to_end(&mut contents).await.unwrap();
     let ip = String::from_utf8(contents).unwrap();
     let hm: HashMap<String, u32> = serde_json::from_str(&ip).unwrap();
-    let mut shuffled: HashMap<u8, Vec<(&str, u32)>> = HashMap::new();
+    let mut shuffled: HashMap<usize, Vec<(&str, u32)>> = HashMap::new();
     for (k, v) in hm.iter() {
         let h = get_hash(k, splits);
         let entries = shuffled.entry(h).or_default();

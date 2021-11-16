@@ -22,6 +22,7 @@ pub struct Worker {
 }
 
 pub struct Manager {
+    total_workers: usize,
     free_pool: VecDeque<Worker>,
     assigned_set: HashMap<String, Worker>,
     pub pending: VecDeque<MasterMessage>,
@@ -33,14 +34,20 @@ impl Manager {
             free_pool: VecDeque::new(),
             assigned_set: HashMap::new(),
             pending: VecDeque::new(),
+            total_workers: 0,
         }
+    }
+    #[inline]
+    pub fn get_total_workers(&self) -> usize {
+        self.total_workers
     }
 
     pub fn add_worker(&mut self, addr: Ipv4Addr) {
         self.free_pool.push_back(Worker {
             assigned_type: WorkerType::None,
             ip_addr: addr,
-        })
+        });
+        self.total_workers += 1;
     }
 
     pub async fn allocate(&mut self, message: MasterMessage) {
@@ -54,9 +61,18 @@ impl Manager {
 
     pub async fn send_message(&mut self, mut worker: Worker, message: &MasterMessage) {
         let wtype = match &message {
-            MasterMessage::MapDirective { input_file: _ } => WorkerType::Mapper,
-            MasterMessage::ReduceDirective { input_file: _ } => WorkerType::Reducer,
+            MasterMessage::MapDirective {
+                id: _,
+                input_file: _,
+                output_file: _,
+            } => WorkerType::Mapper,
+            MasterMessage::ReduceDirective {
+                id: _,
+                input_file: _,
+                output_file: _,
+            } => WorkerType::Reducer,
             MasterMessage::ShuffleDirective {
+                id: _,
                 input_file: _,
                 splits: _,
             } => WorkerType::Shuffler,

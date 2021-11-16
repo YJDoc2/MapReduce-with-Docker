@@ -2,9 +2,21 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum MasterMessage {
-    MapDirective { input_file: String },
-    ReduceDirective { input_file: String },
-    ShuffleDirective { input_file: String, splits: u8 },
+    MapDirective {
+        id: usize,
+        input_file: String,
+        output_file: String,
+    },
+    ReduceDirective {
+        id: usize,
+        input_file: String,
+        output_file: String,
+    },
+    ShuffleDirective {
+        id: usize,
+        input_file: String,
+        splits: usize,
+    },
 }
 impl MasterMessage {
     pub fn to_u8_vec(&self) -> Vec<u8> {
@@ -15,7 +27,7 @@ impl MasterMessage {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum SlaveMessage {
-    Done,
+    Done(usize),
 }
 
 impl SlaveMessage {

@@ -20,12 +20,31 @@ fn get_string(buf: &[u8]) -> String {
     return String::from_utf8(Vec::from(&buf[0..end])).unwrap();
 }
 
-async fn init_work(msg: &MasterMessage) {
+async fn init_work(msg: &MasterMessage) -> usize {
     match msg {
-        MasterMessage::MapDirective { input_file } => map(input_file).await,
-        MasterMessage::ReduceDirective { input_file } => reduce(input_file).await,
-        MasterMessage::ShuffleDirective { input_file, splits } => {
-            shuffle(input_file, *splits).await
+        MasterMessage::MapDirective {
+            id,
+            input_file,
+            output_file,
+        } => {
+            map(input_file).await;
+            *id
+        }
+        MasterMessage::ReduceDirective {
+            id,
+            input_file,
+            output_file,
+        } => {
+            reduce(input_file).await;
+            *id
+        }
+        MasterMessage::ShuffleDirective {
+            id,
+            input_file,
+            splits,
+        } => {
+            shuffle(input_file, *splits).await;
+            *id
         }
     }
 }
@@ -51,8 +70,8 @@ pub async fn slave_main() -> Result<(), Box<dyn std::error::Error>> {
                     Ok(_) => {
                         let msg = get_string(&buf);
                         let msg: MasterMessage = serde_json::from_str(&msg).unwrap();
-                        init_work(&msg).await;
-                        let t = serde_json::to_string(&SlaveMessage::Done).unwrap();
+                        let id = init_work(&msg).await;
+                        let t = serde_json::to_string(&SlaveMessage::Done(id)).unwrap();
                         let mut s = TcpStream::connect((addrv4, MASTER_SOCKET)).await.unwrap();
                         s.write_all(&Vec::from(t)).await.unwrap();
                         return;

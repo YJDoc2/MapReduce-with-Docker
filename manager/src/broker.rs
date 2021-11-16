@@ -13,7 +13,7 @@ const BROKER_PORT: u16 = 8000;
 pub enum Tasks {
     AddWorker { ip: Ipv4Addr },
     Allocate { message: MasterMessage },
-    FreeWorker { ip: Ipv4Addr },
+    FreeWorker { id: usize, ip: Ipv4Addr },
 }
 
 fn get_string(buf: &[u8]) -> String {
@@ -28,7 +28,7 @@ fn get_string(buf: &[u8]) -> String {
     return String::from_utf8(Vec::from(&buf[0..end])).unwrap();
 }
 
-pub async fn spawn_listener(self_ip: Ipv4Addr, manager: mpsc::Sender<Tasks>) {
+async fn spawn_listener(self_ip: Ipv4Addr, manager: mpsc::Sender<Tasks>) {
     tokio::spawn(async move {
         let listener = TcpListener::bind((self_ip, BROKER_PORT)).await.unwrap();
         loop {
@@ -48,9 +48,13 @@ pub async fn spawn_listener(self_ip: Ipv4Addr, manager: mpsc::Sender<Tasks>) {
                             let msg = get_string(&buf);
                             let msg: SlaveMessage = serde_json::from_str(&msg).unwrap();
                             match msg {
-                                SlaveMessage::Done => {
-                                    if let Err(_) =
-                                        m_clone.send(Tasks::FreeWorker { ip: addrv4 }).await
+                                SlaveMessage::Done(idx) => {
+                                    if let Err(_) = m_clone
+                                        .send(Tasks::FreeWorker {
+                                            id: idx,
+                                            ip: addrv4,
+                                        })
+                                        .await
                                     {
                                         println!("Error in freeing worker");
                                     } else {
@@ -72,7 +76,7 @@ pub async fn spawn_listener(self_ip: Ipv4Addr, manager: mpsc::Sender<Tasks>) {
 
 pub async fn spwan_manager(
     self_ip: Ipv4Addr,
-    sender: mpsc::Sender<()>,
+    sender: mpsc::Sender<usize>,
 ) -> Result<mpsc::Sender<Tasks>, Box<dyn std::error::Error>> {
     let (tx, mut rx) = mpsc::channel(TASK_QUEUE_LENGTH);
     spawn_listener(self_ip, tx.clone()).await;
@@ -86,11 +90,9 @@ pub async fn spwan_manager(
                 Tasks::Allocate { message } => {
                     manager.allocate(message).await;
                 }
-                Tasks::FreeWorker { ip } => {
+                Tasks::FreeWorker { id, ip } => {
+                    sender.send(id).await.unwrap();
                     manager.worker_done(&ip.to_string()).await;
-                    if manager.tasks_done() {
-                        sender.send(()).await.unwrap();
-                    }
                 }
             }
         }
