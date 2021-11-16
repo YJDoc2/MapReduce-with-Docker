@@ -26,11 +26,11 @@ impl MasterMessage {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub enum SlaveMessage {
+pub enum WorkerMessage {
     Done(usize),
 }
 
-impl SlaveMessage {
+impl WorkerMessage {
     pub fn to_u8_vec(&self) -> Vec<u8> {
         let msg: String = serde_json::to_string(&self).unwrap();
         return Vec::from(msg);

@@ -1,5 +1,5 @@
 use crate::manager::Manager;
-use crate::messages::{MasterMessage, SlaveMessage};
+use crate::messages::{MasterMessage, WorkerMessage};
 use serde_json;
 use std::net::Ipv4Addr;
 use tokio::io::AsyncReadExt;
@@ -46,9 +46,9 @@ async fn spawn_listener(self_ip: Ipv4Addr, manager: mpsc::Sender<Tasks>) {
                         Ok(n) if n == 0 => return,
                         Ok(_) => {
                             let msg = get_string(&buf);
-                            let msg: SlaveMessage = serde_json::from_str(&msg).unwrap();
+                            let msg: WorkerMessage = serde_json::from_str(&msg).unwrap();
                             match msg {
-                                SlaveMessage::Done(idx) => {
+                                WorkerMessage::Done(idx) => {
                                     if let Err(_) = m_clone
                                         .send(Tasks::FreeWorker {
                                             id: idx,

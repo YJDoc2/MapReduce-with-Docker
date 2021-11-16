@@ -1,6 +1,6 @@
 use super::{map, reduce, shuffle};
 use crate::ip_finder::get_self_ip;
-use manager::{MasterMessage, SlaveMessage};
+use manager::{MasterMessage, WorkerMessage};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 
@@ -49,7 +49,7 @@ async fn init_work(msg: &MasterMessage) -> usize {
     }
 }
 
-pub async fn slave_main() -> Result<(), Box<dyn std::error::Error>> {
+pub async fn worker_main() -> Result<(), Box<dyn std::error::Error>> {
     let self_ip = get_self_ip();
     let listener = TcpListener::bind((self_ip, SOCKET)).await?;
 
@@ -71,7 +71,7 @@ pub async fn slave_main() -> Result<(), Box<dyn std::error::Error>> {
                         let msg = get_string(&buf);
                         let msg: MasterMessage = serde_json::from_str(&msg).unwrap();
                         let id = init_work(&msg).await;
-                        let t = serde_json::to_string(&SlaveMessage::Done(id)).unwrap();
+                        let t = serde_json::to_string(&WorkerMessage::Done(id)).unwrap();
                         let mut s = TcpStream::connect((addrv4, MASTER_SOCKET)).await.unwrap();
                         s.write_all(&Vec::from(t)).await.unwrap();
                         return;

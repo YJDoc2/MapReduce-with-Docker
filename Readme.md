@@ -109,13 +109,13 @@ This section explains the file structure and what each file contains.
 |   ├── master
 |   |   └── master.rs         -> Contains functionality of master node, such as splitting the file,
 |   |                             queuing all the work, and main function for the master
-|   ├── slave
+|   ├── worker
 |   |   ├── hasher.rs         -> Contains a simple hashing function for strings,
 |   |                             which is used in shuffling step
 |   |   ├── map.rs            -> Contains map function of the map step
 |   |   ├── reduce.rs         -> Contains reduce function of the reduce step
 |   |   ├── shuffle.rs        -> Contains shuffle function of the shuffle step
-|   |   └── slave.rs          -> Contains functionality of worker nodes,
+|   |   └── worker.rs          -> Contains functionality of worker nodes,
 |   |                             and main function for the worker
 |   ├── ip_finder.rs          -> Contains functions to get node's
 |   |                             own ip and scan ports to find worker nodes

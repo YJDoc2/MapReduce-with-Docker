@@ -41,7 +41,7 @@ pub async fn shuffle(file: &str, splits: usize) {
         let wd = Duration::from_millis(wait_time);
         let op = format_shuffled(v);
         // wait for random duration so that we don't mistakenly overwrite when
-        // some other slave is writing
+        // some other worker is writing
         sleep(wd).await;
         // this is sync write, as thread getting suspended during write
         // can cause problems

@@ -1,7 +1,7 @@
 mod ip_finder;
 mod mapreduce;
 mod master;
-mod slave;
+mod worker;
 use std::env;
 use std::time::Instant;
 
@@ -15,10 +15,10 @@ async fn main() {
                 println!("{:?}", time.elapsed());
                 return;
             }
-            if s == "slave" {
-                return slave::slave_main().await.unwrap();
+            if s == "worker" {
+                return worker::worker_main().await.unwrap();
             }
-            eprintln!("Error : TYPE must be master or slave, got {}", s)
+            eprintln!("Error : TYPE must be master or worker, got {}", s)
         }
         Err(_) => {}
     };
