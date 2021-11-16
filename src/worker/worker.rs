@@ -27,7 +27,7 @@ async fn init_work(msg: &MasterMessage) -> usize {
             input_file,
             output_file,
         } => {
-            map(input_file).await;
+            map(input_file, output_file).await;
             *id
         }
         MasterMessage::ReduceDirective {
@@ -35,15 +35,16 @@ async fn init_work(msg: &MasterMessage) -> usize {
             input_file,
             output_file,
         } => {
-            reduce(input_file).await;
+            reduce(input_file, output_file).await;
             *id
         }
         MasterMessage::ShuffleDirective {
             id,
             input_file,
             splits,
+            name,
         } => {
-            shuffle(input_file, *splits).await;
+            shuffle(name, input_file, *splits).await;
             *id
         }
     }

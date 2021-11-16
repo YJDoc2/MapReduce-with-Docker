@@ -20,6 +20,8 @@ async fn main() {
             }
             eprintln!("Error : TYPE must be master or worker, got {}", s)
         }
-        Err(_) => {}
+        Err(e) => {
+            eprintln!("Error {}", e)
+        }
     };
 }

@@ -14,6 +14,7 @@ pub enum MasterMessage {
     },
     ShuffleDirective {
         id: usize,
+        name: String,
         input_file: String,
         splits: usize,
     },

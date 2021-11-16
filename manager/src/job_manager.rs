@@ -1,3 +1,4 @@
+use crate::broker::spwan_manager;
 use crate::broker::Tasks;
 use crate::messages::*;
 use std::collections::{HashMap, VecDeque};
@@ -6,7 +7,9 @@ use std::net::Ipv4Addr;
 use std::path::PathBuf;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 
-use crate::broker::spwan_manager;
+fn get_input_file() -> String {
+    std::env::var("INPUT").unwrap()
+}
 
 pub enum Splits {
     Max,
@@ -15,15 +18,26 @@ pub enum Splits {
 
 pub struct Job {
     name: String,
-    id: usize,
     input_file: String,
     splits: Splits,
     remaining_count: usize,
     pipeline: VecDeque<PipelineTask>,
 }
 
+impl Job {
+    pub fn new(name: &str, ip: &str, splits: Splits, pipeline: VecDeque<PipelineTask>) -> Self {
+        Self {
+            name: name.to_owned(),
+            input_file: ip.to_owned(),
+            splits,
+            remaining_count: 0,
+            pipeline,
+        }
+    }
+}
+
 #[derive(Copy, Clone)]
-enum TaskType {
+pub enum TaskType {
     Map,
     Shuffle,
     Reduce,
@@ -42,14 +56,13 @@ impl std::fmt::Display for TaskType {
 
 struct QueuedTask {
     id: usize,
-    splits: usize,
     input_file: String,
     output_file: String,
     task_type: TaskType,
 }
 
 pub struct PipelineTask {
-    task_type: TaskType,
+    pub task_type: TaskType,
 }
 
 pub struct JobManager {
@@ -77,7 +90,7 @@ fn split_file(job_name: &str, input_file: &str, splits: usize) {
     let split_size = (file_size as f32 / splits as f32) as u64;
 
     let mut opts = std::fs::OpenOptions::new();
-    let mut ip_file = opts
+    let ip_file = opts
         .write(false)
         .read(true)
         .create_new(false)
@@ -89,8 +102,9 @@ fn split_file(job_name: &str, input_file: &str, splits: usize) {
     for i in 1..=splits {
         let mut opts = std::fs::OpenOptions::new();
         let mut _f = opts
+            .create(true)
+            .truncate(true)
             .write(true)
-            .create_new(true)
             .open(fpath.join(get_splitfile_name(job_name, "map", i)))
             .unwrap();
         loop {
@@ -156,25 +170,40 @@ impl JobManager {
         // either map shuffle or reduce jobs.
         // thus we have to take care of at max total jobs * number of workers jobs
         let mut queue = VecDeque::with_capacity(self.jobs.len() * self.connected);
+        let _temp = get_input_file();
+        let mut input_file = PathBuf::from(_temp);
+        input_file.pop();
         for (id, job) in &mut self.jobs {
             let splits = match job.splits {
                 Splits::Max => self.connected,
                 Splits::Count(0) => self.connected,
                 Splits::Count(n) => n,
             };
+            let task = job.pipeline.get(0).unwrap().task_type;
+            let next_type = match job.pipeline.get(1) {
+                Some(t) => t.task_type.to_string(),
+                None => "result".to_owned(),
+            };
             job.remaining_count = splits;
             for i in 1..=splits {
                 queue.push_back(QueuedTask {
                     id: *id,
-                    input_file: get_splitfile_name(&job.name, "map", splits),
-                    output_file: get_splitfile_name(&job.name, "shuffle", splits),
-                    splits: splits,
-                    task_type: TaskType::Map,
+                    input_file: input_file
+                        .join(get_splitfile_name(&job.name, &task.to_string(), i))
+                        .to_str()
+                        .unwrap()
+                        .to_owned(),
+                    output_file: input_file
+                        .join(get_splitfile_name(&job.name, &next_type, i))
+                        .to_str()
+                        .unwrap()
+                        .to_owned(),
+                    task_type: task,
                 });
             }
         }
         loop {
-            if queue.len() <= 0 {
+            if self.jobs.len() <= 0 {
                 break;
             }
             while let Some(task) = queue.pop_front() {
@@ -187,6 +216,7 @@ impl JobManager {
                     TaskType::Shuffle => MasterMessage::ShuffleDirective {
                         id: task.id,
                         input_file: task.input_file,
+                        name: self.jobs.get(&task.id).unwrap().name.clone(),
                         splits: self.connected,
                     },
                     TaskType::Reduce => MasterMessage::ReduceDirective {
@@ -208,12 +238,19 @@ impl JobManager {
                     .expect("Invalid id received from workers");
                 job.remaining_count -= 1;
                 if job.remaining_count == 0 {
-                    let new_task = match job.pipeline.pop_front() {
+                    // There will be some current running task if we got this id
+                    // basically this is the old task, that has been completed
+                    job.pipeline.pop_front().unwrap();
+
+                    let task = match job.pipeline.get(0) {
                         Some(task) => task.task_type,
-                        None => continue, // Note that this will go to next iteration, so any code after if let...
-                                          // at the start of this will be ignored in case None
+                        None => {
+                            // there is not next task, so task is done
+                            self.jobs.remove(&id);
+                            continue;
+                        }
                     };
-                    let next_task = match job.pipeline.get(0) {
+                    let next_task = match job.pipeline.get(1) {
                         Some(task) => task.task_type.to_string(),
                         None => "result".to_owned(),
                     };
@@ -225,15 +262,18 @@ impl JobManager {
                     job.remaining_count = splits;
                     for i in 1..=splits {
                         queue.push_back(QueuedTask {
-                            id: job.id,
-                            input_file: get_splitfile_name(
-                                &job.name,
-                                &new_task.to_string(),
-                                splits,
-                            ),
-                            output_file: get_splitfile_name(&job.name, &next_task, splits),
-                            splits: splits,
-                            task_type: new_task,
+                            id: id,
+                            input_file: input_file
+                                .join(get_splitfile_name(&job.name, &task.to_string(), i))
+                                .to_str()
+                                .unwrap()
+                                .to_owned(),
+                            output_file: input_file
+                                .join(get_splitfile_name(&job.name, &next_task, i))
+                                .to_str()
+                                .unwrap()
+                                .to_owned(),
+                            task_type: task,
                         });
                     }
                 }

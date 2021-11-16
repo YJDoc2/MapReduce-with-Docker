@@ -19,9 +19,9 @@ fn format_shuffled<'a>(shuffled: &'a [(&str, u32)]) -> Vec<u8> {
     return joined.as_bytes().to_vec();
 }
 
-pub async fn shuffle(file: &str, splits: usize) {
+pub async fn shuffle(name: &str, file: &str, splits: usize) {
+    println!("{}", file);
     let mut f = tokio::fs::File::open(file).await.unwrap();
-
     let mut contents = vec![];
     f.read_to_end(&mut contents).await.unwrap();
     let ip = String::from_utf8(contents).unwrap();
@@ -48,7 +48,8 @@ pub async fn shuffle(file: &str, splits: usize) {
         let mut file = OpenOptions::new()
             .append(true)
             .create(true)
-            .open(fpath.join(format!("shuffle_split_{}.txt", k)))
+            // THis naming is extremely hacky, needs to be fixed
+            .open(fpath.join(format!("{}_reduce_split_{}.txt", name, k)))
             .unwrap();
         file.write_all(&op).unwrap();
     }

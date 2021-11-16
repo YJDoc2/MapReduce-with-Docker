@@ -2,6 +2,6 @@ mod broker;
 mod job_manager;
 mod manager;
 mod messages;
-pub use broker::{spwan_manager, Tasks};
-pub use manager::WorkerType;
+
+pub use job_manager::{Job, JobManager, PipelineTask, Splits, TaskType};
 pub use messages::{MasterMessage, WorkerMessage};

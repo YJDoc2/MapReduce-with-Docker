@@ -37,10 +37,6 @@ impl Manager {
             total_workers: 0,
         }
     }
-    #[inline]
-    pub fn get_total_workers(&self) -> usize {
-        self.total_workers
-    }
 
     pub fn add_worker(&mut self, addr: Ipv4Addr) {
         self.free_pool.push_back(Worker {
@@ -75,6 +71,7 @@ impl Manager {
                 id: _,
                 input_file: _,
                 splits: _,
+                name: _,
             } => WorkerType::Shuffler,
         };
         let mut stream = TcpStream::connect((worker.ip_addr, SOCKET_ADDR))
@@ -96,9 +93,5 @@ impl Manager {
             }
             self.free_pool.push_back(x);
         }
-    }
-
-    pub fn tasks_done(&self) -> bool {
-        self.pending.len() == 0 && self.assigned_set.len() == 0
     }
 }

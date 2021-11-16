@@ -3,17 +3,6 @@ use std::path::PathBuf;
 use tokio::fs::File;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-fn extract_num(f: &str) -> u8 {
-    f.rsplit_once('_')
-        .unwrap()
-        .1
-        .rsplit_once('.')
-        .unwrap()
-        .0
-        .parse()
-        .unwrap()
-}
-
 fn format_reduced<'a>(reduced: &'a HashMap<&str, u32>) -> Vec<u8> {
     let mut joined: String = "".to_owned();
     for (k, v) in reduced.iter() {
@@ -23,7 +12,7 @@ fn format_reduced<'a>(reduced: &'a HashMap<&str, u32>) -> Vec<u8> {
     return joined.as_bytes().to_vec();
 }
 
-pub async fn reduce(file: &str) {
+pub async fn reduce(file: &str, output_file: &str) {
     let mut f = match File::open(file).await {
         Ok(r) => r,
         Err(_) => return,
@@ -40,12 +29,9 @@ pub async fn reduce(file: &str) {
         let ctr = hm.entry(k).or_insert(0);
         *ctr += v.parse::<u32>().unwrap();
     }
-    let idx = extract_num(file);
     let op = format_reduced(&hm);
     let mut fpath = PathBuf::from(file);
     fpath.pop();
-    let mut file = File::create(fpath.join(format!("reduce_split_{}.txt", idx)))
-        .await
-        .unwrap();
+    let mut file = File::create(output_file).await.unwrap();
     file.write_all(&op).await.unwrap();
 }
