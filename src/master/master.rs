@@ -1,5 +1,5 @@
 use crate::ip_finder::{get_ip_list, get_self_ip};
-use manager::{Job, JobManager, PipelineTask, Splits, TaskType};
+use manager::{Job, JobManager, PipelineTask, TaskType};
 use std::collections::VecDeque;
 
 // should be changed later?
@@ -22,7 +22,7 @@ pub async fn master_main() -> Result<(), Box<dyn std::error::Error>> {
     pipeline.push_back(PipelineTask {
         task_type: TaskType::Reduce,
     });
-    let wordcount = Job::new("wordcount", &get_input_file(), Splits::Max, pipeline);
+    let wordcount = Job::new("wordcount", &get_input_file(), pipeline);
     jm.queue_job(wordcount);
     jm.start().await;
     Ok(())

@@ -60,12 +60,10 @@ impl Manager {
             MasterMessage::MapDirective {
                 id: _,
                 input_file: _,
-                output_file: _,
             } => WorkerType::Mapper,
             MasterMessage::ReduceDirective {
                 id: _,
                 input_file: _,
-                output_file: _,
             } => WorkerType::Reducer,
             MasterMessage::ShuffleDirective {
                 id: _,

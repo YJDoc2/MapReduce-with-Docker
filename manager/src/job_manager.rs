@@ -7,29 +7,24 @@ use std::net::Ipv4Addr;
 use std::path::PathBuf;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 
+// need to either export this as pub, or import from somewhere else,
+// as this is duplicated from master
 fn get_input_file() -> String {
     std::env::var("INPUT").unwrap()
-}
-
-pub enum Splits {
-    Max,
-    Count(usize),
 }
 
 pub struct Job {
     name: String,
     input_file: String,
-    splits: Splits,
     remaining_count: usize,
     pipeline: VecDeque<PipelineTask>,
 }
 
 impl Job {
-    pub fn new(name: &str, ip: &str, splits: Splits, pipeline: VecDeque<PipelineTask>) -> Self {
+    pub fn new(name: &str, ip: &str, pipeline: VecDeque<PipelineTask>) -> Self {
         Self {
             name: name.to_owned(),
             input_file: ip.to_owned(),
-            splits,
             remaining_count: 0,
             pipeline,
         }
@@ -57,7 +52,6 @@ impl std::fmt::Display for TaskType {
 struct QueuedTask {
     id: usize,
     input_file: String,
-    output_file: String,
     task_type: TaskType,
 }
 
@@ -74,8 +68,8 @@ pub struct JobManager {
 }
 
 #[inline]
-fn get_splitfile_name(job_name: &str, task: &str, idx: usize) -> String {
-    format!("{}_{}_split_{}.txt", job_name, task, idx)
+fn get_splitfile_name(job_name: &str, idx: usize) -> String {
+    format!("{}_split_{}.txt", job_name, idx)
 }
 
 fn split_file(job_name: &str, input_file: &str, splits: usize) {
@@ -105,7 +99,7 @@ fn split_file(job_name: &str, input_file: &str, splits: usize) {
             .create(true)
             .truncate(true)
             .write(true)
-            .open(fpath.join(get_splitfile_name(job_name, "map", i)))
+            .open(fpath.join(get_splitfile_name(job_name, i)))
             .unwrap();
         loop {
             if _f.metadata().expect("Cannot read metadata").len() >= split_size {
@@ -152,12 +146,8 @@ impl JobManager {
     }
 
     pub async fn start(&mut self) {
+        let splits = self.connected;
         for (_, job) in &self.jobs {
-            let splits = match job.splits {
-                Splits::Max => self.connected,
-                Splits::Count(0) => self.connected,
-                Splits::Count(n) => n,
-            };
             split_file(&job.name, &job.input_file, splits);
         }
         self.spawn_tracker().await;
@@ -174,27 +164,14 @@ impl JobManager {
         let mut input_file = PathBuf::from(_temp);
         input_file.pop();
         for (id, job) in &mut self.jobs {
-            let splits = match job.splits {
-                Splits::Max => self.connected,
-                Splits::Count(0) => self.connected,
-                Splits::Count(n) => n,
-            };
+            let splits = self.connected;
             let task = job.pipeline.get(0).unwrap().task_type;
-            let next_type = match job.pipeline.get(1) {
-                Some(t) => t.task_type.to_string(),
-                None => "result".to_owned(),
-            };
             job.remaining_count = splits;
             for i in 1..=splits {
                 queue.push_back(QueuedTask {
                     id: *id,
                     input_file: input_file
-                        .join(get_splitfile_name(&job.name, &task.to_string(), i))
-                        .to_str()
-                        .unwrap()
-                        .to_owned(),
-                    output_file: input_file
-                        .join(get_splitfile_name(&job.name, &next_type, i))
+                        .join(get_splitfile_name(&job.name, i))
                         .to_str()
                         .unwrap()
                         .to_owned(),
@@ -211,7 +188,6 @@ impl JobManager {
                     TaskType::Map => MasterMessage::MapDirective {
                         id: task.id,
                         input_file: task.input_file,
-                        output_file: task.output_file,
                     },
                     TaskType::Shuffle => MasterMessage::ShuffleDirective {
                         id: task.id,
@@ -222,7 +198,6 @@ impl JobManager {
                     TaskType::Reduce => MasterMessage::ReduceDirective {
                         id: task.id,
                         input_file: task.input_file,
-                        output_file: task.output_file,
                     },
                 };
                 if let Err(_) = manager.clone().send(Tasks::Allocate { message: msg }).await {
@@ -250,26 +225,13 @@ impl JobManager {
                             continue;
                         }
                     };
-                    let next_task = match job.pipeline.get(1) {
-                        Some(task) => task.task_type.to_string(),
-                        None => "result".to_owned(),
-                    };
-                    let splits = match job.splits {
-                        Splits::Max => self.connected,
-                        Splits::Count(0) => self.connected,
-                        Splits::Count(n) => n,
-                    };
+                    let splits = self.connected;
                     job.remaining_count = splits;
                     for i in 1..=splits {
                         queue.push_back(QueuedTask {
                             id: id,
                             input_file: input_file
-                                .join(get_splitfile_name(&job.name, &task.to_string(), i))
-                                .to_str()
-                                .unwrap()
-                                .to_owned(),
-                            output_file: input_file
-                                .join(get_splitfile_name(&job.name, &next_task, i))
+                                .join(get_splitfile_name(&job.name, i))
                                 .to_str()
                                 .unwrap()
                                 .to_owned(),

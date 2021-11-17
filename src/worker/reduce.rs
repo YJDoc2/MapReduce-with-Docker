@@ -12,7 +12,7 @@ fn format_reduced<'a>(reduced: &'a HashMap<&str, u32>) -> Vec<u8> {
     return joined.as_bytes().to_vec();
 }
 
-pub async fn reduce(file: &str, output_file: &str) {
+pub async fn reduce(file: &str) {
     let mut f = match File::open(file).await {
         Ok(r) => r,
         Err(_) => return,
@@ -32,6 +32,6 @@ pub async fn reduce(file: &str, output_file: &str) {
     let op = format_reduced(&hm);
     let mut fpath = PathBuf::from(file);
     fpath.pop();
-    let mut file = File::create(output_file).await.unwrap();
+    let mut file = File::create(file).await.unwrap();
     file.write_all(&op).await.unwrap();
 }

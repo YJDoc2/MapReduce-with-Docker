@@ -20,10 +20,20 @@ fn format_shuffled<'a>(shuffled: &'a [(&str, u32)]) -> Vec<u8> {
 }
 
 pub async fn shuffle(name: &str, file: &str, splits: usize) {
-    println!("{}", file);
-    let mut f = tokio::fs::File::open(file).await.unwrap();
+    let mut f = tokio::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(file)
+        .await
+        .unwrap();
     let mut contents = vec![];
     f.read_to_end(&mut contents).await.unwrap();
+    // each shuffle split has to take care that its's own file is truncated
+    // after reading from it is done
+    f.set_len(0).await.unwrap();
+    // close the file, so that if any other shuffle worker wants
+    // to write to it, it can do so
+    drop(f);
     let ip = String::from_utf8(contents).unwrap();
     let hm: HashMap<String, u32> = serde_json::from_str(&ip).unwrap();
     let mut shuffled: HashMap<usize, Vec<(&str, u32)>> = HashMap::new();
@@ -35,6 +45,14 @@ pub async fn shuffle(name: &str, file: &str, splits: usize) {
     let mut rng: StdRng = SeedableRng::from_entropy();
     let mut fpath = PathBuf::from(file);
     fpath.pop();
+    // This is a bit hacky, but should work fine
+    // as long as the splits done are of equal size, and the input size is big enough
+    // this basically waits 100ms for rest of the shuffle to read from their files, in case they haven't yet
+    // as we overwrite the original files for shuffle results.
+    // If the splits are equal sized, then there is a low chance that
+    // when one node has finished all of its read and processing some other node is still reading from a file
+    let wd = Duration::from_millis(100);
+    sleep(wd).await;
 
     for (k, v) in shuffled.iter() {
         let wait_time: u64 = rng.gen_range(10..100);
@@ -47,9 +65,7 @@ pub async fn shuffle(name: &str, file: &str, splits: usize) {
         // can cause problems
         let mut file = OpenOptions::new()
             .append(true)
-            .create(true)
-            // THis naming is extremely hacky, needs to be fixed
-            .open(fpath.join(format!("{}_reduce_split_{}.txt", name, k)))
+            .open(fpath.join(format!("{}_split_{}.txt", name, k)))
             .unwrap();
         file.write_all(&op).unwrap();
     }

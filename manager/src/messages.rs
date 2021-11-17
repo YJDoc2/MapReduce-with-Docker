@@ -5,12 +5,10 @@ pub enum MasterMessage {
     MapDirective {
         id: usize,
         input_file: String,
-        output_file: String,
     },
     ReduceDirective {
         id: usize,
         input_file: String,
-        output_file: String,
     },
     ShuffleDirective {
         id: usize,

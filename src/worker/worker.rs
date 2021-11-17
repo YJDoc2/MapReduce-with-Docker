@@ -22,20 +22,12 @@ fn get_string(buf: &[u8]) -> String {
 
 async fn init_work(msg: &MasterMessage) -> usize {
     match msg {
-        MasterMessage::MapDirective {
-            id,
-            input_file,
-            output_file,
-        } => {
-            map(input_file, output_file).await;
+        MasterMessage::MapDirective { id, input_file } => {
+            map(input_file).await;
             *id
         }
-        MasterMessage::ReduceDirective {
-            id,
-            input_file,
-            output_file,
-        } => {
-            reduce(input_file, output_file).await;
+        MasterMessage::ReduceDirective { id, input_file } => {
+            reduce(input_file).await;
             *id
         }
         MasterMessage::ShuffleDirective {
