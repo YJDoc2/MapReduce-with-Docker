@@ -10,7 +10,7 @@ use std::path::PathBuf;
 use tokio::io::AsyncReadExt;
 use tokio::time::{sleep, Duration};
 
-fn format_shuffled<'a>(shuffled: &'a [(&str, u32)]) -> Vec<u8> {
+fn format_shuffled<'a>(shuffled: &'a [(String, u32)]) -> Vec<u8> {
     let mut joined: String = "".to_owned();
     for v in shuffled {
         joined = format!("{}\n{} {}", joined, v.0, v.1);
@@ -19,7 +19,22 @@ fn format_shuffled<'a>(shuffled: &'a [(&str, u32)]) -> Vec<u8> {
     return joined.as_bytes().to_vec();
 }
 
-pub async fn shuffle(name: &str, file: &str, splits: usize) {
+fn wordcount(ip: &str, splits: usize) -> HashMap<usize, Vec<(String, u32)>> {
+    let hm: HashMap<String, u32> = serde_json::from_str(&ip).unwrap();
+    let mut shuffled: HashMap<usize, Vec<(String, u32)>> = HashMap::new();
+    for (k, v) in hm.into_iter() {
+        let h = get_hash(&k, splits);
+        let entries = shuffled.entry(h).or_default();
+        entries.push((k, v));
+    }
+    return shuffled;
+}
+
+fn matrix(ip: &str, splits: usize) -> HashMap<usize, Vec<(String, u32)>> {
+    unimplemented!();
+}
+
+pub async fn shuffle(job_name: &str, file: &str, splits: usize) {
     let mut f = tokio::fs::OpenOptions::new()
         .read(true)
         .write(true)
@@ -28,23 +43,7 @@ pub async fn shuffle(name: &str, file: &str, splits: usize) {
         .unwrap();
     let mut contents = vec![];
     f.read_to_end(&mut contents).await.unwrap();
-    // each shuffle split has to take care that its's own file is truncated
-    // after reading from it is done
-    f.set_len(0).await.unwrap();
-    // close the file, so that if any other shuffle worker wants
-    // to write to it, it can do so
-    drop(f);
     let ip = String::from_utf8(contents).unwrap();
-    let hm: HashMap<String, u32> = serde_json::from_str(&ip).unwrap();
-    let mut shuffled: HashMap<usize, Vec<(&str, u32)>> = HashMap::new();
-    for (k, v) in hm.iter() {
-        let h = get_hash(k, splits);
-        let entries = shuffled.entry(h).or_default();
-        entries.push((k, *v));
-    }
-    let mut rng: StdRng = SeedableRng::from_entropy();
-    let mut fpath = PathBuf::from(file);
-    fpath.pop();
     // This is a bit hacky, but should work fine
     // as long as the splits done are of equal size, and the input size is big enough
     // this basically waits 100ms for rest of the shuffle to read from their files, in case they haven't yet
@@ -53,6 +52,22 @@ pub async fn shuffle(name: &str, file: &str, splits: usize) {
     // when one node has finished all of its read and processing some other node is still reading from a file
     let wd = Duration::from_millis(100);
     sleep(wd).await;
+    // each shuffle split has to take care that its's own file is truncated
+    // after reading from it is done
+    f.set_len(0).await.unwrap();
+    // close the file, so that if any other shuffle worker wants
+    // to write to it, it can do so
+    drop(f);
+
+    let shuffled = match job_name {
+        "wordcount" => wordcount(&ip, splits),
+        "matrix" => matrix(&ip, splits),
+        _ => panic!("Unknown Job encountered"),
+    };
+
+    let mut rng: StdRng = SeedableRng::from_entropy();
+    let mut fpath = PathBuf::from(file);
+    fpath.pop();
 
     for (k, v) in shuffled.iter() {
         let wait_time: u64 = rng.gen_range(10..100);
@@ -65,7 +80,7 @@ pub async fn shuffle(name: &str, file: &str, splits: usize) {
         // can cause problems
         let mut file = OpenOptions::new()
             .append(true)
-            .open(fpath.join(format!("{}_split_{}.txt", name, k)))
+            .open(fpath.join(format!("{}_split_{}.txt", job_name, k)))
             .unwrap();
         file.write_all(&op).unwrap();
     }

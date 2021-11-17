@@ -4,10 +4,12 @@ use serde::{Deserialize, Serialize};
 pub enum MasterMessage {
     MapDirective {
         id: usize,
+        name: String,
         input_file: String,
     },
     ReduceDirective {
         id: usize,
+        name: String,
         input_file: String,
     },
     ShuffleDirective {

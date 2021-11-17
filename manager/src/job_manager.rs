@@ -50,7 +50,7 @@ impl std::fmt::Display for TaskType {
 }
 
 struct QueuedTask {
-    id: usize,
+    job_id: usize,
     input_file: String,
     task_type: TaskType,
 }
@@ -169,7 +169,7 @@ impl JobManager {
             job.remaining_count = splits;
             for i in 1..=splits {
                 queue.push_back(QueuedTask {
-                    id: *id,
+                    job_id: *id,
                     input_file: input_file
                         .join(get_splitfile_name(&job.name, i))
                         .to_str()
@@ -184,19 +184,22 @@ impl JobManager {
                 break;
             }
             while let Some(task) = queue.pop_front() {
+                let job_name = self.jobs.get(&task.job_id).unwrap().name.clone();
                 let msg: MasterMessage = match task.task_type {
                     TaskType::Map => MasterMessage::MapDirective {
-                        id: task.id,
+                        id: task.job_id,
+                        name: job_name,
                         input_file: task.input_file,
                     },
                     TaskType::Shuffle => MasterMessage::ShuffleDirective {
-                        id: task.id,
+                        id: task.job_id,
                         input_file: task.input_file,
-                        name: self.jobs.get(&task.id).unwrap().name.clone(),
+                        name: job_name,
                         splits: self.connected,
                     },
                     TaskType::Reduce => MasterMessage::ReduceDirective {
-                        id: task.id,
+                        id: task.job_id,
+                        name: job_name,
                         input_file: task.input_file,
                     },
                 };
@@ -229,7 +232,7 @@ impl JobManager {
                     job.remaining_count = splits;
                     for i in 1..=splits {
                         queue.push_back(QueuedTask {
-                            id: id,
+                            job_id: id,
                             input_file: input_file
                                 .join(get_splitfile_name(&job.name, i))
                                 .to_str()
