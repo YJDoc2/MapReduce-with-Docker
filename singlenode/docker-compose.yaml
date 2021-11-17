@@ -1,11 +1,11 @@
 version: '3.8'
 services:
   s1:
-    image: 'ubuntu'
+    image: 'ubuntu:22.04'
     cpu_quota: 3000
     environment:
       - TYPE=master
-      - INPUT=/data/books.txt
+      - INPUT=/data/singlenode_dense_matrix.txt
     volumes:
       - ./target/debug:/src
       - ../data:/data
