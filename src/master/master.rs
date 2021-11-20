@@ -22,8 +22,9 @@ pub async fn master_main() -> Result<(), Box<dyn std::error::Error>> {
     pipeline.push_back(PipelineTask {
         task_type: TaskType::Reduce,
     });
-    let wordcount = Job::new("wordcount", &get_input_file(), pipeline);
+    let wordcount = Job::new("matrix", &get_input_file(), pipeline);
     jm.queue_job(wordcount);
+    println!("Starting...");
     jm.start().await;
     Ok(())
 }

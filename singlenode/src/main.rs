@@ -35,14 +35,20 @@ fn generate_rand_matrix(count: usize, threshold: f32, range: f32, mr_name: &str,
     for i in 0..count {
         let mut temp = Vec::with_capacity(count);
         for j in 0..count {
-            let decider: f32 = rng.gen();
-            if decider < threshold {
-                let rand_num: f32 = rng.gen_range(0.0..range);
-                writeln!(f, "B {} {} {}", i, j, rand_num).unwrap();
-                temp.push(rand_num);
+            // let decider: f32 = rng.gen();
+            if i == j {
+                temp.push(1.0);
+                writeln!(f, "B {} {} {}", i, j, 1.0).unwrap();
             } else {
                 temp.push(0.0);
             }
+            // if decider < threshold {
+            //     let rand_num: f32 = rng.gen_range(0.0..range);
+            //     writeln!(f, "B {} {} {}", i, j, rand_num).unwrap();
+            //     temp.push(rand_num);
+            // } else {
+            //     temp.push(0.0);
+            // }
         }
         b.push(temp);
     }
@@ -111,5 +117,6 @@ fn matrix_main() {
 fn main() {
     let time = Instant::now();
     matrix_main();
+    // generate_rand_matrix(50, 1.0, 100.0, "simple_dense.txt", "single_simple.txt");
     println!("{:?}", time.elapsed());
 }

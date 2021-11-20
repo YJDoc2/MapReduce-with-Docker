@@ -19,7 +19,7 @@ fn format_shuffled<'a>(shuffled: &'a [(String, u32)]) -> Vec<u8> {
     return joined.as_bytes().to_vec();
 }
 
-fn wordcount(ip: &str, splits: usize) -> HashMap<usize, Vec<(String, u32)>> {
+fn wordcount(ip: &str, splits: usize) -> HashMap<usize, Vec<u8>> {
     let hm: HashMap<String, u32> = serde_json::from_str(&ip).unwrap();
     let mut shuffled: HashMap<usize, Vec<(String, u32)>> = HashMap::new();
     for (k, v) in hm.into_iter() {
@@ -27,11 +27,32 @@ fn wordcount(ip: &str, splits: usize) -> HashMap<usize, Vec<(String, u32)>> {
         let entries = shuffled.entry(h).or_default();
         entries.push((k, v));
     }
-    return shuffled;
+    let mut ret = HashMap::new();
+    for (k, v) in shuffled.into_iter() {
+        ret.insert(k, format_shuffled(&v));
+    }
+    return ret;
 }
 
-fn matrix(ip: &str, splits: usize) -> HashMap<usize, Vec<(String, u32)>> {
-    unimplemented!();
+fn matrix(ip: &str, splits: usize) -> HashMap<usize, Vec<u8>> {
+    // (i, k) : (A/B, j, val)
+    let hm: HashMap<String, Vec<(String, String, String)>> = serde_json::from_str(ip).unwrap();
+    let mut temp: HashMap<usize, String> = HashMap::new();
+    for (key, v) in hm.into_iter() {
+        let (i, k) = key.split_once(" ").unwrap();
+        let (i, k): (usize, usize) = (i.parse().unwrap(), k.parse().unwrap());
+        let h = (i + k) % splits;
+        let s = temp.entry(h).or_default();
+        for (name, j, v) in v.into_iter() {
+            s.push_str(&format!("{} {} {} {} {}\n", i, k, name, j, v));
+        }
+    }
+    let mut ret = HashMap::new();
+    for (k, v) in temp.into_iter() {
+        ret.insert(k, v.as_bytes().to_vec());
+    }
+
+    return ret;
 }
 
 pub async fn shuffle(job_name: &str, file: &str, splits: usize) {
@@ -72,7 +93,6 @@ pub async fn shuffle(job_name: &str, file: &str, splits: usize) {
     for (k, v) in shuffled.iter() {
         let wait_time: u64 = rng.gen_range(10..100);
         let wd = Duration::from_millis(wait_time);
-        let op = format_shuffled(v);
         // wait for random duration so that we don't mistakenly overwrite when
         // some other worker is writing
         sleep(wd).await;
@@ -80,8 +100,8 @@ pub async fn shuffle(job_name: &str, file: &str, splits: usize) {
         // can cause problems
         let mut file = OpenOptions::new()
             .append(true)
-            .open(fpath.join(format!("{}_split_{}.txt", job_name, k)))
+            .open(fpath.join(format!("{}_split_{}.txt", job_name, k + 1)))
             .unwrap();
-        file.write_all(&op).unwrap();
+        file.write_all(v).unwrap();
     }
 }

@@ -5,7 +5,7 @@ services:
     cpu_quota: 3000
     environment:
       - TYPE=master
-      - INPUT=/data/singlenode_dense_matrix.txt
+      - INPUT=/data/single_simple.txt
     volumes:
       - ./target/debug:/src
       - ../data:/data

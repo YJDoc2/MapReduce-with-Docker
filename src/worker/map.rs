@@ -17,7 +17,22 @@ fn wordcount(ip: &str) -> String {
 }
 
 fn matrix(ip: &str) -> String {
-    unimplemented!();
+    let mut ret: HashMap<String, Vec<(&str, &str, &str)>> = HashMap::new();
+    // ok this is a total hack, but shut up!
+    let matrix_size = 50;
+    // line format is A/B i j val
+    for line in ip.lines() {
+        let splitted: Vec<_> = line.split_ascii_whitespace().collect();
+        let name = splitted[0];
+        let i = splitted[1];
+        let j = splitted[2];
+        let val = splitted[3];
+        for k in 0..matrix_size {
+            let entry = ret.entry(format!("{} {}", i, k)).or_default();
+            entry.push((name, j, val));
+        }
+    }
+    return serde_json::to_string(&ret).unwrap();
 }
 
 pub async fn map(job_name: &str, file: &str) {

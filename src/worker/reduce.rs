@@ -26,7 +26,40 @@ fn wordcount(ip: &str) -> Vec<u8> {
 }
 
 fn matrix(ip: &str) -> Vec<u8> {
-    unimplemented!();
+    let mut hm: HashMap<(usize, usize), Vec<(&str, usize, f32)>> = HashMap::new();
+    for line in ip.lines() {
+        let splitted: Vec<_> = line.split_ascii_whitespace().collect();
+        let i = splitted[0].parse().unwrap();
+        let k = splitted[1].parse().unwrap();
+        let name = splitted[2];
+        let j = splitted[3].parse().unwrap();
+        let val = splitted[4].parse().unwrap();
+        let entry = hm.entry((i, k)).or_default();
+        entry.push((name, j, val));
+    }
+    let mut ret: HashMap<(usize, usize), f32> = HashMap::with_capacity(500);
+    for ((i, k), v) in hm.into_iter() {
+        let mut temp_a = HashMap::new();
+        let mut temp_b = HashMap::new();
+        for (name, j, v) in v.into_iter() {
+            if name == "A" {
+                temp_a.insert(j, v);
+            } else {
+                temp_b.insert(j, v);
+            }
+        }
+        let mut res = 0.0;
+        for j in 0..50 {
+            res += temp_a.get(&j).unwrap_or(&0.0) * temp_b.get(&j).unwrap_or(&0.0);
+        }
+        ret.insert((i, k), res);
+    }
+    let mut s = String::new();
+    for ((i, j), v) in ret.into_iter() {
+        s.push_str(&format!("{} {} {}\n", i, j, v));
+    }
+
+    return s.as_bytes().to_vec();
 }
 
 pub async fn reduce(job_name: &str, file: &str) {

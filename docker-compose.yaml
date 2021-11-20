@@ -12,7 +12,7 @@ services:
       - s8
     environment:
       - TYPE=master
-      - INPUT=/data/books.txt
+      - INPUT=/data/simple_dense.txt
     volumes:
       - ./target/debug:/src
       - ./data:/data
